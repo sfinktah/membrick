@@ -1,29 +1,35 @@
-class memHandle
+/*
+ *           _             
+ * __  _ __ |_) __ o  _  | 
+ * |||(/_||||_) |  | (_  |<
+ * 
+ */
+class memBrick
 {
 protected:
     void* _handle;
 
 public:
-    memHandle()
+    memBrick()
         : _handle(nullptr)
     { }
 
-    memHandle(void* p)
+    memBrick(void* p)
         : _handle(p)
     { }
 
-    memHandle(std::uintptr_t p)
+    memBrick(std::uintptr_t p)
         : _handle(reinterpret_cast<void*>(p))
     { }
 
-    memHandle(const memHandle& copy)
+    memBrick(const memBrick& copy)
         : _handle(copy._handle)
     { }
 
-    static memHandle scan(const char* pattern)
+    static memBrick scan(const char* pattern)
     { return {}; }
 
-    static memHandle scan(const char* pattern, const char* mask)
+    static memBrick scan(const char* pattern, const char* mask)
     { }
 
     template <typename T>
@@ -38,52 +44,52 @@ public:
         return *this->get<T>();
     }
 
-    memHandle save(memHandle& out)
+    memBrick save(memBrick& out)
     {
         return out = *this;
     }
 
-    memHandle offset(std::intptr_t offset)
+    memBrick offset(std::intptr_t offset)
     {
         return this->get<char>() + offset;
     }
 
-    memHandle deference()
+    memBrick deference()
     {
         return *this->get<void*>();
     }
 
-    memHandle iprelative(std::uintptr_t ipoffset)
+    memBrick iprelative(std::uintptr_t ipoffset)
     {
         return this->offset(ipoffset).offset(this->as<int>());
     }
 
-    memHandle rva(memHandle va)
+    memBrick rva(memBrick va)
     {
         return va.offset(this->as<int>());
     }
     
-    //memHandle set(const unsigned char c, std::size_t size)
+    //memBrick set(const unsigned char c, std::size_t size)
     //{
     //    return memset(this->get<void>(), c, size);
     //}
 
-    //memHandle nop(std::size_t size)
+    //memBrick nop(std::size_t size)
     //{
     //    return this->set(0x90, size);
     //}
 
-    //memHandle zero(std::size_t size)
+    //memBrick zero(std::size_t size)
     //{
     //    return this->set(0x00, size);
     //}
 
-    //memHandle write(const void* bytes, std::size_t size)
+    //memBrick write(const void* bytes, std::size_t size)
     //{
     //    return memcpy(this->get<void>(), bytes, size);
     //}
 
-    //memHandle read(void* buffer, std::size_t size)
+    //memBrick read(void* buffer, std::size_t size)
     //{
     //    return memcpy(buffer, this->get<const void>(), size);
     //}
