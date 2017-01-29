@@ -22,51 +22,65 @@ public:
         : _handle(reinterpret_cast<void*>(p))
     { }
 
+    memBrick(std::nullptr_t p)
+        : _handle(p)
+    { }
+
     memBrick(const memBrick& copy)
         : _handle(copy._handle)
     { }
 
+
     static memBrick scan(const char* pattern)
-    { return {}; }
+    { }
 
     static memBrick scan(const char* pattern, const char* mask)
     { }
 
     template <typename T>
-    T* get()
+    T as() const
     {
-        return reinterpret_cast<T*>(this->_handle);
+        static_assert(std::is_pointer<T>::value, "Type is not a pointer");
+
+        return reinterpret_cast<T>(this->_handle);
+    }
+
+    template <>
+    std::uintptr_t as<std::uintptr_t>() const
+    {
+        return reinterpret_cast<std::uintptr_t>(this->_handle);
+    }
+
+    template <>
+    std::intptr_t as<std::intptr_t>() const
+    {
+        return reinterpret_cast<std::intptr_t>(this->_handle);
     }
 
     template <typename T>
-    T& as()
+    T read() const
     {
-        return *this->get<T>();
+        return *this->as<T*>();
     }
 
-    memBrick save(memBrick& out)
+    memBrick save(memBrick& out) const
     {
-        return out = *this;
+        return (out = *this);
     }
 
-    memBrick offset(std::intptr_t offset)
+    memBrick offset(std::intptr_t offset) const
     {
-        return this->get<char>() + offset;
+        return this->as<std::uintptr_t>() + offset;
     }
 
-    memBrick deference()
+    memBrick rip(std::uintptr_t ipoffset) const
     {
-        return *this->get<void*>();
+        return this->offset(ipoffset).offset(this->read<int>());
     }
 
-    memBrick iprelative(std::uintptr_t ipoffset)
+    memBrick translate(memBrick from, memBrick to) const
     {
-        return this->offset(ipoffset).offset(this->as<int>());
-    }
-
-    memBrick rva(memBrick va)
-    {
-        return va.offset(this->as<int>());
+        return to.offset(this->as<std::intptr_t>() - from.as<std::intptr_t>());
     }
     
     //memBrick set(const unsigned char c, std::size_t size)
