@@ -1,9 +1,16 @@
+#pragma once
+
 /*
- *           _             
- * __  _ __ |_) __ o  _  | 
+ *           _
+ * __  _ __ |_) __ o  _  |
  * |||(/_||||_) |  | (_  |<
- * 
+ *
  */
+
+#include <cstdint>
+#include <cstring>
+#include <type_traits>
+
 class memBrick
 {
 protected:
@@ -22,46 +29,94 @@ public:
         : _handle(reinterpret_cast<void*>(p))
     { }
 
-    memBrick(std::nullptr_t p)
-        : _handle(p)
-    { }
-
     memBrick(const memBrick& copy)
         : _handle(copy._handle)
     { }
 
+	static memBrick scan(memBrick base, std::size_t size, const char* pattern)
+	{
+		struct nibble
+		{
+			std::uint8_t value  = 0;
+			std::uint8_t offset = 0;
+		} nibbles[128];
 
-    static memBrick scan(const char* pattern)
-    { }
+		std::size_t count = 0;
 
-    static memBrick scan(const char* pattern, const char* mask)
-    { }
+		for (; pattern; pattern = std::strpbrk(pattern, " "))
+		{
+			pattern += std::strspn(pattern, " "); // Discard whitespace
 
-    template <typename T>
-    T as() const
-    {
-        static_assert(std::is_pointer<T>::value, "Type is not a pointer");
+			if (pattern[0] != '?')
+			{
+				nibbles[count].value      = std::uint8_t(std::strtol(pattern, NULL, 16));
+				nibbles[count + 1].offset = nibbles[count].offset;
 
-        return reinterpret_cast<T>(this->_handle);
-    }
+				count++;
+			}
 
-    template <>
-    std::uintptr_t as<std::uintptr_t>() const
-    {
-        return reinterpret_cast<std::uintptr_t>(this->_handle);
-    }
+			nibbles[count].offset++;
+		}
 
-    template <>
-    std::intptr_t as<std::intptr_t>() const
-    {
-        return reinterpret_cast<std::intptr_t>(this->_handle);
-    }
+		for (std::size_t i = 0; i < size - nibbles[count].offset; i++)
+		{
+			memBrick currentOffset = base.offset(i);
+
+			bool found = true;
+
+			for (std::size_t j = 0; j < count; ++j)
+			{
+				if (nibbles[j].value != currentOffset.offset(nibbles[j].offset).read<std::uint8_t>())
+				{
+					found = false;
+
+					break;
+				}
+			}
+
+			if (found)
+			{
+				return currentOffset;
+			}
+		}
+
+		return nullptr;
+	}
+
+	static memBrick scan(MODULEINFO module, const char* pattern)
+	{
+		return memBrick::scan(module.lpBaseOfDll, module.SizeOfImage, pattern);
+	}
+
+	template <typename T>
+	std::enable_if_t<std::is_pointer<T>::value, T> as() const
+	{
+		return reinterpret_cast<T>(this->_handle);
+	}
+
+	template <typename T>
+	std::enable_if_t<std::is_same<T, std::uintptr_t>::value, T> as() const
+	{
+		return reinterpret_cast<std::uintptr_t>(this->_handle);
+	}
+
+	template <typename T>
+	std::enable_if_t<std::is_same<T, std::intptr_t>::value, T> as() const
+	{
+		return reinterpret_cast<std::intptr_t>(this->_handle);
+	}
 
     template <typename T>
     T read() const
     {
         return *this->as<T*>();
     }
+
+	template <typename T>
+	T& ref() const
+	{
+		return *this->as<T*>();
+	}
 
     memBrick save(memBrick& out) const
     {
@@ -82,29 +137,4 @@ public:
     {
         return to.offset(this->as<std::intptr_t>() - from.as<std::intptr_t>());
     }
-    
-    //memBrick set(const unsigned char c, std::size_t size)
-    //{
-    //    return memset(this->get<void>(), c, size);
-    //}
-
-    //memBrick nop(std::size_t size)
-    //{
-    //    return this->set(0x90, size);
-    //}
-
-    //memBrick zero(std::size_t size)
-    //{
-    //    return this->set(0x00, size);
-    //}
-
-    //memBrick write(const void* bytes, std::size_t size)
-    //{
-    //    return memcpy(this->get<void>(), bytes, size);
-    //}
-
-    //memBrick read(void* buffer, std::size_t size)
-    //{
-    //    return memcpy(buffer, this->get<const void>(), size);
-    //}
 };
