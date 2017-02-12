@@ -7,29 +7,9 @@
  *
  */
 
-/* This might yell at me for putting it here */
-
-MODULEINFO GetMainModuleInfo()
-{
-    MODULEINFO mi;
-    GetModuleInformation(GetCurrentProcess(), GetModuleHandle(NULL), &mi, sizeof(mi));
-    return mi;
-}
-
-MODULEINFO g_MainModuleInfo = GetMainModuleInfo();
-
-memBrick Scan(const char* pattern)
-{
-    return memBrick::scan(g_MainModuleInfo, pattern);
-}
-
-template <typename T>
-T* Scan(const char* pattern)
-{
-    return Scan(pattern).as<T*>();
-}
-
-/* End of yelling */
+#include <cstdint>
+#include <cstring>
+#include <type_traits>
 
 class memBrick
 {
@@ -103,6 +83,11 @@ public:
         return nullptr;
     }
 
+    static memBrick scan(MODULEINFO module, const char* pattern)
+    {
+        return memBrick::scan(module.lpBaseOfDll, module.SizeOfImage, pattern);
+    }
+
     template <typename T>
     std::enable_if_t<std::is_pointer<T>::value, T> as() const
     {
@@ -158,3 +143,4 @@ public:
         return to.offset(this->as<std::intptr_t>() - from.as<std::intptr_t>());
     }
 };
+

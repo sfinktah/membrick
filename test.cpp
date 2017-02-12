@@ -16,6 +16,8 @@
 
 
 
+void original() {
+
 	auto registrationTablePattern =		pattern("76 61 49 8B 7A 40 48 8D 0D");
 	auto gameStatePattern =				pattern("83 3D ? ? ? ? ? 8A D9 74 0A");
 	auto getScriptIdBlock =				pattern("80 78 32 00 75 34 B1 01 E8");
@@ -55,3 +57,5 @@
 
     // Bypass is player model allowed to spawn checks
     GET_PATTERN_AND(void, onlineModelSpawnBypassPtn, 1, 0, 8)  Memory::nop(void_location, 2);
+
+}
